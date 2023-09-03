@@ -1,18 +1,17 @@
-# TypeORM - Postgres
+# Relaciones con TypeORM
 
 En este repositorio se ven las relaciones, autenticación, autorización y websocket, además de: 
 
-- Uso de `TypeORM`.
-- Uso de `Postgres`.
-- Creación de `CRUD`.
-- Uso de `Constrains`.
-- Validaciones.
-- Búsquedas.
-- Creación de Paginaciones.
-- Uso de `DTOs`.
-- Uso de `Entities`.
-- Uso de `Decoradores` de `TypeORM` para entidades.
-- Uso de Métodos `BeforeInsert`, `BeforeUpdate`.
+- Relaciones de: 
+    - De uno a muchos. 
+    - Muchos a uno.
+- Uso de `Query Runner`.
+- Uso de `Query Builder`.
+- Uso de Transacciones.
+- `Commits` y `Rollbacks`.
+- Renombrar tablas.
+- Creación de semilla `SEED`.
+- Aplanación de resultados.
 
 ## Teslo API
 1. Instalar las dependencias de `node_modules` con el comando:
