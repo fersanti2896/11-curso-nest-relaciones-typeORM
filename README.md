@@ -24,7 +24,11 @@ npm install
 ```
 docker-compose up -d
 ``` 
-5. Levantar el proyecto en entorno de desarrollo: 
+5. Ejecutar el SEED para reestablecer la Base de datos de tipo `GET`: 
+```
+http://localhost:300'/api/seed
+```
+6. Levantar el proyecto en entorno de desarrollo: 
 ```
 npm run start:dev
 ``` 
