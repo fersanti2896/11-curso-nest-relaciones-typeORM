@@ -1,13 +1,12 @@
 import { Injectable, InternalServerErrorException, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { validate as isUUID } from 'uuid';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
-import { Product } from './entities/product.entity';
 import { PaginationDto } from 'src/common/dtos/pagination.dto';
-
-import { validate as isUUID } from 'uuid';
+import { Product, ProductImage } from './entities';
 
 @Injectable()
 export class ProductsService {
@@ -16,14 +15,22 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(ProductImage)
+    private readonly productImageRepository: Repository<ProductImage>
   ) {}
 
   async create(createProductDto: CreateProductDto) {
     try {
-      const product = this.productRepository.create( createProductDto );
+      const { images = [], ...productDetails } = createProductDto;
+
+      const product = this.productRepository.create( { 
+        ...productDetails,
+        images: images.map( img => this.productImageRepository.create({ url: img }) )
+      } );
+
       await this.productRepository.save( product );
 
-      return product;
+      return { ...product, images };
     } catch (error) {
       this.handleDBExceptions(error);
     }
@@ -36,13 +43,20 @@ export class ProductsService {
       this.productRepository.count(),
       this.productRepository.find({
         take: limit, 
-        skip: offset
+        skip: offset,
+        relations: {
+          images: true
+        }
       })
     ]);
 
     const numProducts = products.length;
+    const productsAll = products.map( product => ({
+      ...product,
+      images: product.images.map( img => img.url )
+    }) )
 
-    return { numProducts, products };
+    return { numProducts, productsAll };
   }
 
   async findOne(term: string) {
@@ -51,11 +65,13 @@ export class ProductsService {
     if( isUUID(term) ) {
       product = await this.productRepository.findOneBy({ id: term });
     } else {
-      const queryBuilder = this.productRepository.createQueryBuilder();
+      const queryBuilder = this.productRepository.createQueryBuilder('prod');
       product = await queryBuilder.where('LOWER(title) =LOWER(:title) or slug =:slug', {
                                     title: term,
                                     slug: term.toLowerCase()
-                                  }).getOne();
+                                  })
+                                  .leftJoinAndSelect('prod.images', 'prodImages')
+                                  .getOne();
     }
 
     if( !product ) throw new NotFoundException(`El producto con el término: ${ term } no existe.`);
@@ -63,11 +79,21 @@ export class ProductsService {
     return product;
   }
 
+  async findOnePlain( term: string ) {
+    const { images = [], ...resto } = await this.findOne( term );
+
+    return {
+      ...resto,
+      images: images.map( img => img.url )
+    }
+  }
+
   async update(id: string, updateProductDto: UpdateProductDto) {
     /* Prepara el producto para su actualizacion */
     const product = await this.productRepository.preload({
       id, 
-      ...updateProductDto
+      ...updateProductDto,
+      images: []
     });
 
     if( !product ) throw new NotFoundException(`El producto con el id: ${ id } no fue encontrado.`);
